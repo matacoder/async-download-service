@@ -1,4 +1,6 @@
 import asyncio
+import os
+from loguru import logger
 
 from aiohttp import web
 import aiofiles
@@ -34,8 +36,16 @@ async def archive(folder):
 
 
 async def archivate(request):
-    archive_hash = request.match_info.get("archive_hash", "photos")
+    # Get parameter from url
+    archive_hash = request.match_info.get("archive_hash", "")
+
+    # Check if path exists
     folder = IMAGES_PATH + archive_hash
+    full_path = os.path.join(os.getcwd(), folder)
+    logger.debug(full_path)
+    if not os.path.exists(full_path):
+        return web.Response(text="Archive was deleted, sorry.")
+
     response = web.StreamResponse()
 
     # File download header
