@@ -1,5 +1,7 @@
 import asyncio
 import os
+
+from aiohttp.web_exceptions import HTTPClientError
 from loguru import logger
 
 from aiohttp import web
@@ -44,7 +46,7 @@ async def archivate(request):
     full_path = os.path.join(os.getcwd(), folder)
     logger.debug(full_path)
     if not os.path.exists(full_path):
-        return web.Response(text="Archive was deleted, sorry.")
+        raise HTTPClientError(reason="404", text="No such folder")
 
     response = web.StreamResponse()
 
