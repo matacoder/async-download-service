@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import os
-from datetime import time
+import configparser
 
 from aiohttp.web_exceptions import HTTPClientError
 from loguru import logger
@@ -9,11 +9,15 @@ from loguru import logger
 from aiohttp import web
 import aiofiles
 
+
+config = configparser.ConfigParser()
+config.read('settings.toml')
+settings = config["DEFAULT"]
+
 INTERVAL_SECS = 1
 CHUNK_SIZE = 1000 * 8  # 100 KB
-IMAGES_PATH = "test_photos"
+IMAGES_PATH = settings.get("photo_folder", "test_photos")
 
-# Global var to terminate coroutine
 
 
 async def archive(folder):
@@ -74,8 +78,9 @@ async def archivate(request):
         async for part, process in archive(folder):
             process_to_terminate = process
             logger.debug("Sending archive chunk ...")
-            await asyncio.sleep(1)
             await response.write(part)
+            if settings.getboolean("use_test_delay"):
+                await asyncio.sleep(settings.getint("delay_in_seconds", 1))
 
     # User pressed cancel button
     except asyncio.CancelledError:
@@ -85,8 +90,11 @@ async def archivate(request):
 
     # Notify end side that we are done streaming!
     finally:
-        process_to_terminate.kill()
-        logger.debug(f"Terminated: {process_to_terminate.pid}")
+        try:
+            process_to_terminate.kill()
+            logger.debug(f"Terminated: {process_to_terminate.pid}")
+        except ProcessLookupError:
+            pass
         logger.debug(f"Closing connection")
         await response.write_eof()
 
