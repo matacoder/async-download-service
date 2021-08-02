@@ -10,21 +10,27 @@ from loguru import logger
 from aiohttp import web
 import aiofiles
 
-
 config = configparser.ConfigParser()
 config.read("settings.toml")
 settings = config["DEFAULT"]
 
 
-async def make_archive(archive_hash):
+async def make_archive(archive_hash, full_path):
     """Archive the folder asynchronously."""
-    command = f"cd {settings.get('photo_folder')}; zip -r - {archive_hash}"
+    zip_cmd = [
+        "zip",
+        "-r",
+        "-",
+        ".",
+    ]
 
-    archive_process = await asyncio.create_subprocess_shell(
-        command,
+    archive_process = await asyncio.create_subprocess_exec(
+        *zip_cmd,
+        cwd=full_path,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
+
     logger.debug(f"Process: {archive_process.pid}")
     logger.debug(
         f"Errors (if any): {await archive_process.stderr.read(n=settings.getint('chunk_size'))}"
@@ -65,7 +71,7 @@ async def stream_archive(request):
     process_to_terminate = ""
 
     try:
-        async for part, process in make_archive(archive_hash):
+        async for part, process in make_archive(archive_hash, full_path):
             process_to_terminate = process
             logger.debug("Sending archive chunk ...")
             await response.write(part)
