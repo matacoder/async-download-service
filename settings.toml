@@ -1,5 +1,5 @@
 [DEFAULT]
-use_test_delay = yes
+use_test_delay = no
 delay_in_seconds = 1
-logging = yes
+logging = no
 photo_folder = test_photos

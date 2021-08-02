@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import os
 import configparser
+import sys
 
 from aiohttp.web_exceptions import HTTPClientError
 from loguru import logger
@@ -11,13 +12,15 @@ import aiofiles
 
 
 config = configparser.ConfigParser()
-config.read('settings.toml')
+config.read("settings.toml")
 settings = config["DEFAULT"]
 
 INTERVAL_SECS = 1
 CHUNK_SIZE = 1000 * 8  # 100 KB
 IMAGES_PATH = settings.get("photo_folder", "test_photos")
-
+LOG_LEVEL = "DEBUG" if settings.getboolean("logging") else "INFO"
+logger.remove()
+logger.add(sys.stderr, level=LOG_LEVEL)
 
 
 async def archive(folder):
@@ -25,7 +28,7 @@ async def archive(folder):
     # flag "-" helps to redirect output bytes to stdout
     # flag "-j" do not include parent directory in archive
     command = f"zip -r -j - {folder}"
-    global archive_process
+
     archive_process = await asyncio.create_subprocess_shell(
         command,
         stdout=asyncio.subprocess.PIPE,  # catch archive bytes from stdout
