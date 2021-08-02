@@ -69,6 +69,7 @@ async def stream_archive(request):
         raise HTTPClientError(reason="404", text="No such folder")
 
     response = web.StreamResponse()
+    response.enable_chunked_encoding()
 
     # File download header
     response.headers[
