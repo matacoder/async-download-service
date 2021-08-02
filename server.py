@@ -18,11 +18,7 @@ settings = config["DEFAULT"]
 INTERVAL_SECS = 1
 CHUNK_SIZE = 1000 * 8
 IMAGES_PATH = settings.get("photo_folder", "test_photos")
-LOG_LEVEL = "DEBUG" if settings.getboolean("logging") else "INFO"
 
-
-logger.remove()
-logger.add(sys.stderr, level=LOG_LEVEL)
 
 
 async def make_archive(archive_hash):
@@ -104,6 +100,9 @@ async def handle_index_page(request):
 
 
 if __name__ == "__main__":
+    logger.remove()
+    logger.add(sys.stderr, level=settings["logger_level"])
+
     app = web.Application()
     app.add_routes(
         [
