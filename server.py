@@ -16,24 +16,22 @@ config.read("settings.toml")
 settings = config["DEFAULT"]
 
 INTERVAL_SECS = 1
-CHUNK_SIZE = 1000 * 8  # 100 KB
+CHUNK_SIZE = 1000 * 8
 IMAGES_PATH = settings.get("photo_folder", "test_photos")
 LOG_LEVEL = "DEBUG" if settings.getboolean("logging") else "INFO"
 
-# Update logger level
+
 logger.remove()
 logger.add(sys.stderr, level=LOG_LEVEL)
 
 
-async def make_archive(folder):
+async def make_archive(archive_hash):
     """Archive the folder asynchronously."""
-    # flag "-" helps to redirect output bytes to stdout
-    # flag "-j" do not include parent directory in archive
-    command = f"zip -r -j - {folder}"
+    command = f"cd {IMAGES_PATH}; zip -r - {archive_hash}"
 
     archive_process = await asyncio.create_subprocess_shell(
         command,
-        stdout=asyncio.subprocess.PIPE,  # catch archive bytes from stdout
+        stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
     logger.debug(f"Process: {archive_process.pid}")
@@ -41,7 +39,6 @@ async def make_archive(folder):
 
     byte_archive = bytes()
     while True:
-        # read process output part by part
         logger.debug("Starting zipping")
         part = await archive_process.stdout.read(n=CHUNK_SIZE)
         if not part:
@@ -51,19 +48,15 @@ async def make_archive(folder):
         logger.debug(f"Zipping part: {part[:10]}...")
         yield part, archive_process
 
-    # for testing purposes we can save file.
-    # with open(folder + ".zip", "wb") as f:
-    #     f.write(byte_archive)
-
 
 async def stream_archive(request):
     """Streaming data to user."""
     # Get parameter from url
     archive_hash = request.match_info.get("archive_hash", "")
+    if not archive_hash:
+        raise HTTPClientError(reason="404", text="Specify a folder with images")
 
-    # Check if path exists
-    folder = os.path.join(IMAGES_PATH, archive_hash)
-    full_path = os.path.join(os.getcwd(), folder)
+    full_path = os.path.join(os.getcwd(), IMAGES_PATH, archive_hash)
     logger.debug(full_path)
     if not os.path.exists(full_path):
         raise HTTPClientError(reason="404", text="No such folder")
@@ -71,34 +64,27 @@ async def stream_archive(request):
     response = web.StreamResponse()
     response.enable_chunked_encoding()
 
-    # File download header
     response.headers[
         "Content-Disposition"
     ] = f'attachment; filename="{archive_hash}.zip"'
 
-    # Send headers =>
     await response.prepare(request)
-    # Now we must not change headers
 
-    # Start async streaming bytes
-    process_to_terminate = (
-        ""  # keep link to have a possibility to kill interrupted process
-    )
+    process_to_terminate = ""
+
     try:
-        async for part, process in make_archive(folder):
+        async for part, process in make_archive(archive_hash):
             process_to_terminate = process
             logger.debug("Sending archive chunk ...")
             await response.write(part)
             if settings.getboolean("use_test_delay"):
                 await asyncio.sleep(settings.getint("delay_in_seconds", INTERVAL_SECS))
 
-    # User pressed cancel button
     except asyncio.CancelledError:
         timestamp = datetime.datetime.now().isoformat()
         logger.debug(f"Interrupted at {timestamp}")
         raise
 
-    # Notify end side that we are done streaming!
     finally:
         try:
             process_to_terminate.kill()
