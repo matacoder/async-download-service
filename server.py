@@ -88,7 +88,7 @@ async def archivate(request):
             logger.debug("Sending archive chunk ...")
             await response.write(part)
             if settings.getboolean("use_test_delay"):
-                await asyncio.sleep(settings.getint("delay_in_seconds", 1))
+                await asyncio.sleep(settings.getint("delay_in_seconds", INTERVAL_SECS))
 
     # User pressed cancel button
     except asyncio.CancelledError:
