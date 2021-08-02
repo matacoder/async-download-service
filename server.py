@@ -50,9 +50,7 @@ async def make_archive(archive_hash, full_path):
 
 async def stream_archive(request):
     """Streaming data to user."""
-    archive_hash = request.match_info.get("archive_hash", "")
-    if not archive_hash:
-        raise HTTPClientError(reason="404", text="Specify a folder with images")
+    archive_hash = request.match_info["archive_hash"]
 
     full_path = os.path.join(os.getcwd(), settings.get("photo_folder"), archive_hash)
     logger.debug(full_path)
