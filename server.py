@@ -15,15 +15,10 @@ config = configparser.ConfigParser()
 config.read("settings.toml")
 settings = config["DEFAULT"]
 
-INTERVAL_SECS = 1
-CHUNK_SIZE = 1000 * 8
-IMAGES_PATH = settings.get("photo_folder", "test_photos")
-
-
 
 async def make_archive(archive_hash):
     """Archive the folder asynchronously."""
-    command = f"cd {IMAGES_PATH}; zip -r - {archive_hash}"
+    command = f"cd {settings.get('photo_folder')}; zip -r - {archive_hash}"
 
     archive_process = await asyncio.create_subprocess_shell(
         command,
@@ -31,12 +26,14 @@ async def make_archive(archive_hash):
         stderr=asyncio.subprocess.PIPE,
     )
     logger.debug(f"Process: {archive_process.pid}")
-    logger.debug(f"Errors (if any): {await archive_process.stderr.read(n=CHUNK_SIZE)}")
+    logger.debug(
+        f"Errors (if any): {await archive_process.stderr.read(n=settings.getint('chunk_size'))}"
+    )
 
     byte_archive = bytes()
     while True:
         logger.debug("Starting zipping")
-        part = await archive_process.stdout.read(n=CHUNK_SIZE)
+        part = await archive_process.stdout.read(n=settings.getint("chunk_size"))
         if not part:
             logger.debug("Empty part, ending zipping")
             break
@@ -47,12 +44,11 @@ async def make_archive(archive_hash):
 
 async def stream_archive(request):
     """Streaming data to user."""
-    # Get parameter from url
     archive_hash = request.match_info.get("archive_hash", "")
     if not archive_hash:
         raise HTTPClientError(reason="404", text="Specify a folder with images")
 
-    full_path = os.path.join(os.getcwd(), IMAGES_PATH, archive_hash)
+    full_path = os.path.join(os.getcwd(), settings.get("photo_folder"), archive_hash)
     logger.debug(full_path)
     if not os.path.exists(full_path):
         raise HTTPClientError(reason="404", text="No such folder")
@@ -74,7 +70,7 @@ async def stream_archive(request):
             logger.debug("Sending archive chunk ...")
             await response.write(part)
             if settings.getboolean("use_test_delay"):
-                await asyncio.sleep(settings.getint("delay_in_seconds", INTERVAL_SECS))
+                await asyncio.sleep(settings.getint("delay_in_seconds"))
 
     except asyncio.CancelledError:
         timestamp = datetime.datetime.now().isoformat()

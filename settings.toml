@@ -3,3 +3,4 @@ use_test_delay = no
 delay_in_seconds = 1
 logger_level = DEBUG
 photo_folder = test_photos
+chunk_size = 8000
