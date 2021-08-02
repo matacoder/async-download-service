@@ -37,7 +37,7 @@ async def archive(folder):
         stderr=asyncio.subprocess.PIPE,
     )
     logger.debug(f"Process: {archive_process.pid}")
-    # logger.debug(f"Errors (if any): {await archive_process.stderr.read()}")
+    logger.debug(f"Errors (if any): {await archive_process.stderr.read(n=CHUNK_SIZE)}")
 
     byte_archive = bytes()
     while True:
