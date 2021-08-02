@@ -25,7 +25,7 @@ logger.remove()
 logger.add(sys.stderr, level=LOG_LEVEL)
 
 
-async def archive(folder):
+async def make_archive(folder):
     """Archive the folder asynchronously."""
     # flag "-" helps to redirect output bytes to stdout
     # flag "-j" do not include parent directory in archive
@@ -84,7 +84,7 @@ async def stream_archive(request):
         ""  # keep link to have a possibility to kill interrupted process
     )
     try:
-        async for part, process in archive(folder):
+        async for part, process in make_archive(folder):
             process_to_terminate = process
             logger.debug("Sending archive chunk ...")
             await response.write(part)
