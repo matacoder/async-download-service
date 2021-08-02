@@ -1,5 +1,7 @@
 import asyncio
+import datetime
 import os
+from datetime import time
 
 from aiohttp.web_exceptions import HTTPClientError
 from loguru import logger
@@ -60,11 +62,19 @@ async def archivate(request):
     # Now we must not change headers
 
     # Start async streaming bytes
-    async for part in archive(folder):
-        await response.write(part)
-
-    # Notify end side that we are done streaming!
-    await response.write_eof()
+    try:
+        async for part in archive(folder):
+            logger.debug("Sending archive chunk ...")
+            await asyncio.sleep(1)
+            await response.write(part)
+    except asyncio.CancelledError:
+        timestamp = datetime.datetime.now().isoformat()
+        logger.debug(f"Interrupted at {timestamp}")
+        raise
+    finally:
+        # Notify end side that we are done streaming!
+        logger.debug(f"Closing connection")
+        await response.write_eof()
 
 
 async def handle_index_page(request):
