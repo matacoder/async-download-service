@@ -56,7 +56,7 @@ async def archive(folder):
     #     f.write(byte_archive)
 
 
-async def archivate(request):
+async def stream_archive(request):
     """Streaming data to user."""
     # Get parameter from url
     archive_hash = request.match_info.get("archive_hash", "")
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     app.add_routes(
         [
             web.get("/", handle_index_page),
-            web.get("/archive/{archive_hash}/", archivate),
+            web.get("/archive/{archive_hash}/", stream_archive),
         ]
     )
     web.run_app(app)
