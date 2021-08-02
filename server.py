@@ -102,9 +102,9 @@ async def archivate(request):
             process_to_terminate.kill()
             logger.debug(f"Terminated: {process_to_terminate.pid}")
         except ProcessLookupError:
-            logger.debug("Process")
+            logger.debug("Process not found.")
         except AttributeError:
-            logger.debug("Attribute error")
+            logger.debug("Attribute error (check create_subprocess_shell)")
         logger.debug(f"Closing connection")
         await response.write_eof()
 
