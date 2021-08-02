@@ -19,6 +19,8 @@ INTERVAL_SECS = 1
 CHUNK_SIZE = 1000 * 8  # 100 KB
 IMAGES_PATH = settings.get("photo_folder", "test_photos")
 LOG_LEVEL = "DEBUG" if settings.getboolean("logging") else "INFO"
+
+# Update logger level
 logger.remove()
 logger.add(sys.stderr, level=LOG_LEVEL)
 
@@ -35,15 +37,18 @@ async def archive(folder):
         stderr=asyncio.subprocess.PIPE,
     )
     logger.debug(f"Process: {archive_process.pid}")
+    # logger.debug(f"Errors (if any): {await archive_process.stderr.read()}")
 
     byte_archive = bytes()
     while True:
         # read process output part by part
-
+        logger.debug("Starting zipping")
         part = await archive_process.stdout.read(n=CHUNK_SIZE)
         if not part:
+            logger.debug("Empty part, ending zipping")
             break
         byte_archive += part
+        logger.debug(f"Zipping part: {part[:10]}...")
         yield part, archive_process
 
     # for testing purposes we can save file.
@@ -97,7 +102,9 @@ async def archivate(request):
             process_to_terminate.kill()
             logger.debug(f"Terminated: {process_to_terminate.pid}")
         except ProcessLookupError:
-            pass
+            logger.debug("Process")
+        except AttributeError:
+            logger.debug("Attribute error")
         logger.debug(f"Closing connection")
         await response.write_eof()
 
