@@ -85,7 +85,7 @@ async def archivate(request):
 
     # Notify end side that we are done streaming!
     finally:
-        process_to_terminate.terminate()
+        process_to_terminate.kill()
         logger.debug(f"Terminated: {process_to_terminate.pid}")
         logger.debug(f"Closing connection")
         await response.write_eof()
