@@ -11,7 +11,7 @@ from aiohttp import web
 import aiofiles
 
 
-async def make_archive(request, full_path):
+async def make_archive(chunk_size, full_path):
     """Archive the folder asynchronously."""
     zip_cmd = [
         "zip",
@@ -29,7 +29,6 @@ async def make_archive(request, full_path):
 
     logger.debug(f"Process: {archive_process.pid}")
 
-    chunk_size = request.app["settings"].getint("chunk_size")
     logger.debug(f"Errors (if any): {await archive_process.stderr.read(n=chunk_size)}")
 
     byte_archive = bytes()
@@ -65,9 +64,10 @@ async def stream_archive(request):
     await response.prepare(request)
 
     process_to_terminate = ""
+    chunk_size = request.app["settings"].getint("chunk_size")
 
     try:
-        async for part, process in make_archive(request, full_path):
+        async for part, process in make_archive(chunk_size, full_path):
             process_to_terminate = process
             logger.debug("Sending archive chunk ...")
             await response.write(part)
