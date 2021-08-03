@@ -28,15 +28,17 @@ async def make_archive(request, full_path):
     )
 
     logger.debug(f"Process: {archive_process.pid}")
+
+    chunk_size = request.app['settings'].getint('chunk_size')
     logger.debug(
-        f"Errors (if any): {await archive_process.stderr.read(n=request.app['settings'].getint('chunk_size'))}"
+        f"Errors (if any): {await archive_process.stderr.read(n=chunk_size)}"
     )
 
     byte_archive = bytes()
     while True:
         logger.debug("Starting zipping")
         part = await archive_process.stdout.read(
-            n=request.app["settings"].getint("chunk_size")
+            n=chunk_size
         )
         if not part:
             logger.debug("Empty part, ending zipping")
