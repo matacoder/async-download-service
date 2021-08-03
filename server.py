@@ -99,17 +99,17 @@ async def handle_index_page(request):
     return web.Response(text=index_contents, content_type="text/html")
 
 
-def load_config(app):
+def load_config():
     """Load config to main scope of app."""
     config = configparser.ConfigParser()
     config.read("settings.toml")
-    app["settings"] = config["DEFAULT"]
+    return config["DEFAULT"]
 
 
-def update_logger_level(app):
+def update_logger_level(level):
     """Change logger level according to config file."""
     logger.remove()
-    logger.add(sys.stderr, level=app["settings"]["logger_level"])
+    logger.add(sys.stderr, level=level)
 
 
 if __name__ == "__main__":
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         ]
     )
 
-    load_config(app)
-    update_logger_level(app)
+    app["settings"] = load_config()
+    update_logger_level(app["settings"]["logger_level"])
 
     web.run_app(app)
