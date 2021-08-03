@@ -88,7 +88,7 @@ async def stream_archive(request):
         except ProcessLookupError:
             logger.debug("Process not found.")
         except AttributeError:
-            logger.debug("Attribute error (check create_subprocess_shell errors PIPE)")
+            logger.debug("Attribute error (check create_subprocess_exec errors PIPE)")
         logger.debug(f"Closing connection")
         await response.write_eof()
 
