@@ -47,9 +47,7 @@ async def stream_archive(request):
     """Streaming data to user."""
     archive_hash = request.match_info["archive_hash"]
 
-    full_path = os.path.join(
-        os.getcwd(), request.app["settings"].get("photo_folder"), archive_hash
-    )
+    full_path = os.path.join(os.getcwd(), request.app["photo_folder"], archive_hash)
     logger.debug(full_path)
     if not os.path.exists(full_path):
         raise HTTPClientError(reason="404", text="No such folder")
@@ -64,15 +62,15 @@ async def stream_archive(request):
     await response.prepare(request)
 
     process_to_terminate = ""
-    chunk_size = request.app["settings"].getint("chunk_size")
+    chunk_size = request.app["chunk_size"]
 
     try:
         async for part, process in make_archive(chunk_size, full_path):
             process_to_terminate = process
             logger.debug("Sending archive chunk ...")
             await response.write(part)
-            if request.app["settings"].getboolean("use_test_delay"):
-                await asyncio.sleep(request.app["settings"].getint("delay_in_seconds"))
+            if request.app["use_test_delay"]:
+                await asyncio.sleep(request.app["delay_in_seconds"])
 
     except asyncio.CancelledError:
         timestamp = datetime.datetime.now().isoformat()
@@ -119,7 +117,13 @@ if __name__ == "__main__":
         ]
     )
 
-    app["settings"] = load_config()
-    update_logger_level(app["settings"]["logger_level"])
+    settings = load_config()
+
+    app["photo_folder"] = settings.get("photo_folder")
+    app["use_test_delay"] = settings.getboolean("use_test_delay")
+    app["delay_in_seconds"] = settings.getint("delay_in_seconds")
+    app["chunk_size"] = settings.getint("chunk_size")
+
+    update_logger_level(settings["logger_level"])
 
     web.run_app(app)
