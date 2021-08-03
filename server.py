@@ -99,7 +99,7 @@ async def handle_index_page(request):
     return web.Response(text=index_contents, content_type="text/html")
 
 
-def load_config():
+def load_config(app):
     """Load config to main scope of app."""
     config = configparser.ConfigParser()
     config.read("settings.toml")
@@ -121,7 +121,7 @@ if __name__ == "__main__":
         ]
     )
 
-    load_config()
+    load_config(app)
     update_logger_level(app)
 
     web.run_app(app)
