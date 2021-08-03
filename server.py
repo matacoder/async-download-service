@@ -10,12 +10,8 @@ from loguru import logger
 from aiohttp import web
 import aiofiles
 
-config = configparser.ConfigParser()
-config.read("settings.toml")
-settings = config["DEFAULT"]
 
-
-async def make_archive(archive_hash, full_path):
+async def make_archive(full_path):
     """Archive the folder asynchronously."""
     zip_cmd = [
         "zip",
@@ -69,7 +65,7 @@ async def stream_archive(request):
     process_to_terminate = ""
 
     try:
-        async for part, process in make_archive(archive_hash, full_path):
+        async for part, process in make_archive(full_path):
             process_to_terminate = process
             logger.debug("Sending archive chunk ...")
             await response.write(part)
@@ -99,9 +95,22 @@ async def handle_index_page(request):
     return web.Response(text=index_contents, content_type="text/html")
 
 
-if __name__ == "__main__":
+def read_config():
+    """Load config to main scope of app."""
+    config = configparser.ConfigParser()
+    config.read("settings.toml")
+    return config["DEFAULT"]
+
+
+def update_logger_level():
+    """Change logger level according to config file."""
     logger.remove()
     logger.add(sys.stderr, level=settings["logger_level"])
+
+
+if __name__ == "__main__":
+    settings = read_config()
+    update_logger_level()
 
     app = web.Application()
     app.add_routes(
@@ -110,4 +119,5 @@ if __name__ == "__main__":
             web.get("/archive/{archive_hash}/", stream_archive),
         ]
     )
+
     web.run_app(app)
